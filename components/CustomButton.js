@@ -46,7 +46,7 @@ CustomButton.propTypes = {
     buttonStyle: PropTypes.object,
     textStyle: PropTypes.object,
     width: PropTypes.string,
-    disabled: PropTypes.string
+    disabled: PropTypes.bool
 };
 
 export default CustomButton;

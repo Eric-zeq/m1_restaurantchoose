@@ -12,7 +12,7 @@ import {GluestackUIProvider} from '@gluestack-ui/themed-native-base'
 import Toast from 'react-native-toast-message'
 import Constants from "expo-constants";
 
-class ListScreen extends React.Component {    
+class ListScreen extends React.Component {
     constructor(inProps) {
         super(inProps);
         this.state = {listData:[]};
