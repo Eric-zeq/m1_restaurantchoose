@@ -561,7 +561,7 @@ class PostChoiceScreen extends React.Component {
             </View>
             <View style={styles.postChoiceDetailsRowContainer}>
               <Text style={styles.postChoiceDetailsLabel}>Phone:</Text>
-              <Text style={styles.postChoiceDetailsValue}>{chosenRestaurant.phone}</Text>
+              <Text style={styles.postChoiceDetailsValue}>{chosenRestaurant.phoneNumber}</Text>
             </View>
             <View style={styles.postChoiceDetailsRowContainer}>
               <Text style={styles.postChoiceDetailsLabel}>Address:</Text>

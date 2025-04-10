@@ -102,51 +102,130 @@ class ListScreen extends React.Component {
                 lastName: '',
                 Relationship: '',
                 key: `p_${new Date().getTime()}`,
+                errors:{}
             };
         };
 
+        validateFirstName = (firstName) => {
+            if (!firstName.trim()) {
+                return "Please enter first name";
+            }
+            return null;
+        };
+
+        validateLastName = (lastName) => {
+            if (!lastName.trim()) {
+                return "Please enter last name";
+            }
+            return null;
+        };
+
+        handleInputChange = (fieldName, value) => {
+            this.setState(prevState => ({
+                [fieldName]: value,
+                errors: {
+                    ...prevState.errors,
+                    [fieldName]: null
+                }
+                }))
+            };
+
+
+        validateAllFields = () => {
+            const {firstName, lastName, Relationship} = this.state; 
+            const errors = {
+                firstName: this.validateFirstName(firstName),
+                lastName: this.validateLastName(lastName),
+                Relationship: !Relationship ? "Please select relationship" : null,
+            };
+
+            this.setState({errors});
+            return !Object.values(errors).some(error => error !== null);
+            };
+
+           
+        
+
         savePeople= async () => {  
-            const {firstName, lastName, Relationship,key} = this.state;
-            if (!firstName || !lastName || !Relationship) {
-                Alert.alert("Please fill all fields");
+            // const {firstName, lastName, Relationship,key} = this.state;
+            // if (!firstName || !lastName || !Relationship) {
+            //     Alert.alert("Please fill all fields");
+            //     return;
+            // }
+            if (!this.validateAllFields()) {
+                const firstErrorField = Object.keys(this.state.errors).find(
+                    key => this.state.errors[key]
+                );
+                if(firstErrorField){
+                    Toast.show({
+                        type: 'error',
+                        position: 'bottom',
+                        text1: 'Validation failed',
+                        text2: this.state.errors[firstErrorField],
+                        visibilityTime: 3000,
+                    });
+                }
                 return;
             }
+
             try {
                 const peoples = await AsyncStorage.getItem('peoples');
                 let listData = peoples ? JSON.parse(peoples) : [];
                 listData.push(this.state);
                 await AsyncStorage.setItem('peoples',JSON.stringify(listData));
+
+                Toast.show({
+                    type: 'success',
+                    position: 'bottom',
+                    text1: 'People saved successfully',
+                    visibilityTime: 2000,
+                });
+
                 this.props.navigation.navigate('ListScreen');
             } catch (error) {
                 console.log('Failed to save people: ',error);
+                Toast.show({
+                    type: 'error',
+                    position: 'bottom',
+                    text1: 'Failed to save people',
+                    text2: 'Please try again later',
+                    visibilityTime: 3000,
+                })
             }
         };
 
         render() {
+            const {errors} = this.state;
             return (
                 <ScrollView style={styles.addScreenContainer}>
                     <View style={styles.addScreenInnerContainer}>
                         <View style={styles.addScreenFormContainer} >
                             <CustomTextInput
                                 label="firstName"
-                                maxLength={20}
+                                maxLength={50}
                                 stateHolder={this}
                                 stateFieldName='firstName'
+                                onChangeText={(text)=>this.handleInputChange('firstName',text)}
+                                error={errors.firstName}
                             />
                             <CustomTextInput
                                 label="lastName"
-                                maxLength={20}
+                                maxLength={50}
                                 stateHolder={this}
                                 stateFieldName='lastName'
+                                onChangeText={(text)=>this.handleInputChange('lastName',text)}
+                                error={errors.lastName}
                             />
                             <Text style={styles.fieldLabel}>Relationship</Text>
-                            <View style={styles.pickerContainer}>
+                            <View style={[styles.pickerContainer,
+                                errors.Relationship ? {borderColor: "red"} : {}
+                            ]}>
                                 <Picker 
                                 style={styles.picker}
                                 selectedValue={this.state.Relationship}
-                                onValueChange={(itemValue) => this.setState({Relationship: itemValue})}
+                                onValueChange={(itemValue) => this.handleInputChange('Relationship',itemValue)}
                                 >
-                                    <Picker.Item label="" value="" />
+                                    <Picker.Item label="Select relationship" value="" />
                                         <Picker.Item label="Me" value="Me" />
                                         <Picker.Item label="Family" value="Family" />
                                         <Picker.Item label="Friend" value="Friend" />
@@ -154,6 +233,11 @@ class ListScreen extends React.Component {
                                         <Picker.Item label="Other" value="Other" />
                                 </Picker>
                             </View>
+                            {errors.Relationship && (
+                                <Text style={{color: "red", marginLeft: 10, marginTop: 5}}>
+                                    {errors.Relationship}
+                                </Text> 
+                            )}
                         </View>
                         <View style={styles.addScreenButtonContainer}>
                             <CustomButton

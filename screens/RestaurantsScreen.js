@@ -105,45 +105,177 @@ class ListScreen extends React.Component {
                 website: '',
                 delivery: '',
                 key: `r_${new Date().getTime()}`,
+                errors:{}
             };
         };
 
-        saveRestaurant = async () => {  
-            const {name, cuisine, price, rating, phoneNumber, address, website, delivery} = this.state;
-            if (!name || !cuisine || !price || !rating || !phoneNumber || !address || !website || !delivery) {
-                Alert.alert("Please fill all fields");
-                return;
+        // validate
+        validateName = (name) => {
+            if (!name.trim()) {
+                return "Restaurant name is required";
             }
+            if (name.length < 2) {
+                return "Restaurant name must be at least 2 characters";
+            }
+            if (!/^[a-zA-Z0-9\s,'-]*$/.test(name)) {
+                return "Name contains invalid characters";
+              }
+              return null;
+          
+        }
+
+        validatePhoneNumber = (phoneNumber) => {
+            if (!phoneNumber.trim()) {
+                return "Phone number is required";
+            }
+
+            const phoneRegex = /^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}$/;
+            if (!phoneRegex.test(phoneNumber)) {
+                return "Phone number is invalid";
+            }
+
+            return null;
+
+        }
+
+        validateAddress = (address) => {
+            if (!address.trim()) {
+                return "Address is required";
+            }
+
+            if(!/\d+/.test(address) || !/[a-zA-Z]/.test(address))
+            {
+                return "Address must contain at least one number and one letter";
+            }
+
+            if(address.length < 5){
+                return "Address must be at least 5 characters long";
+            }
+
+            return null;
+        }
+
+        validateWebsite = (website) => {
+            if (!website.trim()) {
+                return "Website is required";
+            }
+
+            try {
+                const urlRegex = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/;
+                if (!urlRegex.test(website)) {
+                    return "please enter a valid website URL (e.g. https://www.example.com)"
+                }
+
+                if(!website.startsWith('http://') && !website.startsWith('https://')){
+                    return "URL must start with http:// or https://"
+                }
+            }catch (error) {
+                return "please enter a valid website URL (e.g. https://www.example.com)"
+            }
+            return null;
+        }
+
+        handleInputChange = (fieldName, value) => {
+            this.setState(prevState => ({
+                [fieldName]: value,
+                errors: {
+                    ...prevState.errors,
+                    [fieldName]: null
+                }
+                }))
+            };
+       
+
+        validateAllFields = () => {
+            const {name, cuisine, price, rating, phoneNumber, address, website, delivery} = this.state;
+            const errors = {
+                name: this.validateName(name),
+                phoneNumber: this.validatePhoneNumber(phoneNumber),
+                address: this.validateAddress(address),
+                website: this.validateWebsite(website),
+                cuisine: !cuisine ? "Cuisine is required" : null,
+                price: !price ? "Price is required" : null,
+                rating: !rating ? "Rating is required" : null,
+                delivery: !delivery ? "Delivery is required" : null,
+            };
+
+            this.setState({errors});
+            return !Object.values(errors).some(error => error !== null);
+        };
+
+
+        saveRestaurant = async () => {  
+            
+            if (!this.validateAllFields()) {
+                const firstErrorField = Object.keys(this.state.errors).find(
+                    key => this.state.errors[key]);
+                if(firstErrorField){
+                    Toast.show({
+                        type: 'error',
+                        position: 'bottom',
+                        text1: 'Validation Error',
+                        text2: this.state.errors[firstErrorField],
+                        visibilityTime: 3000,
+                    });
+                }
+                return;
+            
+            };
+
+            // const {name, cuisine, price, rating, phoneNumber, address, website, delivery} = this.state;
+            // if (!name || !cuisine || !price || !rating || !phoneNumber || !address || !website || !delivery) {
+            //     Alert.alert("Please fill all fields");
+            //     return;
+            // }
             try {
                 const restaurants = await AsyncStorage.getItem('restaurants');
                 let listData = restaurants ? JSON.parse(restaurants) : [];
                 listData.push(this.state);
                 await AsyncStorage.setItem('restaurants',JSON.stringify(listData));
+
+                Toast.show({
+                    type:'success',
+                    position: 'bottom',
+                    text1: 'Restaurant added successfully',
+                    visibilityTime: 2000,
+                });
+
                 this.props.navigation.navigate('ListScreen');
             } catch (error) {
                 console.log('Failed to save restaurant: ',error);
-            }
+                Toast.show({
+                    type: 'error',
+                    position: 'bottom',
+                    text1: 'Failed to save restaurant',
+                    text2: 'Please try again later',
+                    visibilityTime: 3000,
+                });
+            };
         };
-
+        
         render() {
+            const {errors} = this.state;
             return (
                 <ScrollView style={styles.addScreenContainer}>
                     <View style={styles.addScreenInnerContainer}>
                         <View style={styles.addScreenFormContainer} >
                             <CustomTextInput
                                 label="Name"
-                                maxLength={20}
+                                maxLength={50}
                                 stateHolder={this}
                                 stateFieldName='name'
+                                onChangeText={(text)=>this.handleInputChange('name',text)}
+                                error = {errors.name}
                             />
                             <Text style={styles.fieldLabel}>Cuisine</Text>
-                            <View style={styles.pickerContainer}>
+                            <View style={[styles.pickerContainer,
+                                  errors.cuisine ? {borderColor: "red"}:{}]}>
                                 <Picker 
                                 style={styles.picker}
                                 selectedValue={this.state.cuisine}
-                                onValueChange={(itemValue) => this.setState({cuisine: itemValue})}
+                                onValueChange={(itemValue) => this.handleInputChange('cuisine',itemValue)}
                                 >
-                                        <Picker.Item label="" value="" />
+                                        <Picker.Item label="Select a cuisine..." value="" />
                                         <Picker.Item label="Algerian" value="Algerian" />
                                         <Picker.Item label="American" value="American" />
                                         <Picker.Item label="BBQ" value="BBQ" />
@@ -194,14 +326,20 @@ class ListScreen extends React.Component {
                                         <Picker.Item label="Welsh" value="Welsh" />
                                 </Picker>
                             </View>
+                            {errors.cuisine && (
+                                <Text style={{color: "red", marginLeft: 10}}>
+                                    {errors.cuisine}
+                                </Text>)}
+
                             <Text style={styles.fieldLabel}>Price</Text>
-                            <View style={styles.pickerContainer}>
+                            <View style={[styles.pickerContainer,
+                                    errors.price ? {borderColor: "red"}:{}]}>
                                 <Picker 
                                     style={styles.picker}
                                     selectedValue={this.state.price}
-                                    onValueChange={(itemValue) => this.setState({price: itemValue})}
+                                    onValueChange={(itemValue) => this.handleInputChange('price',itemValue)}
                                 >
-                                        <Picker.Item label="" value="" />
+                                        <Picker.Item label="Select a price range..." value="" />
                                         <Picker.Item label="1" value="1" />
                                         <Picker.Item label="2" value="2" />
                                         <Picker.Item label="3" value="3" />
@@ -209,14 +347,19 @@ class ListScreen extends React.Component {
                                         <Picker.Item label="5" value="5" /> 
                                 </Picker>
                             </View>
+                            {errors.price && (
+                                <Text style={{color: "red", marginLeft: 10,marginBottom:10}}>
+                                    {errors.price}
+                                </Text>)}
                             <Text style={styles.fieldLabel}>Rating</Text>
-                            <View style={styles.pickerContainer}>
+                            <View style={[styles.pickerContainer,
+                                    errors.rating ? {borderColor: "red"}:{}]}>
                                 <Picker 
                                     style={styles.picker}
                                     selectedValue={this.state.rating}
-                                    onValueChange={(itemValue) => this.setState({rating: itemValue})}
+                                    onValueChange={(itemValue) => this.handleInputChange('rating',itemValue)}
                                 >
-                                        <Picker.Item label="" value="" />
+                                        <Picker.Item label="Select a rating..." value="" />
                                         <Picker.Item label="1" value="1" />
                                         <Picker.Item label="2" value="2" />
                                         <Picker.Item label="3" value="3" />
@@ -224,46 +367,70 @@ class ListScreen extends React.Component {
                                         <Picker.Item label="5" value="5" /> 
                                 </Picker>
                             </View>
+                            {errors.rating && (
+                                <Text style={{color: "red", marginLeft: 10,marginBottom:10}}>
+                                    {errors.rating}
+                                </Text>)}
+
                             <CustomTextInput
-                                label="Phone"
+                                label="Phone Number"
                                 maxLength={20}
                                 stateHolder={this}
                                 stateFieldName='phoneNumber'
+                                onChangeText={(text)=>this.handleInputChange('phoneNumber',text)}
+                                keyboardType="phone-pad"
+                                error = {errors.phoneNumber}
                             />
+
                             <CustomTextInput
                                 label="Address"
-                                maxLength={50}
+                                maxLength={100}
                                 stateHolder={this}
                                 stateFieldName='address'
+                                onChangeText={(text)=>this.handleInputChange('address',text)}
+                                error = {errors.address}
                             />
+
                             <CustomTextInput
                                 label="Website"
                                 maxLength={50}
                                 stateHolder={this}
                                 stateFieldName='website'
+                                onChangeText={(text)=>this.handleInputChange('website',text)}
+                                keyboardType="url"
+                                autoCapitalize="none"
+                                error = {errors.website}
                             />
+
                             <Text style={styles.fieldLabel}>Delivery?</Text>
-                            <View style={styles.pickerContainer}>
+                            <View style={[
+                                styles.pickerContainer,
+                                errors.delivery ? {borderColor: "red"}:{}
+                            ]}>
                                 <Picker 
                                     style={styles.picker}
                                     selectedValue={this.state.delivery}
-                                    onValueChange={(itemValue) => this.setState({delivery: itemValue})}
+                                    onValueChange={(itemValue) => this.handleInputChange('delivery',itemValue)}
                                 >       
-                                        <Picker.Item label="" value="" />
+                                        <Picker.Item label="Select delivery option..." value="" />
                                         <Picker.Item label="Yes" value="Yes" />
                                         <Picker.Item label="No" value="No" />
                                 </Picker>
                             </View>
+                            {errors.delivery && (
+                                <Text style={{color: "red", marginLeft: 10,marginBottom:10}}>
+                                    {errors.delivery}
+                                </Text>)}
                         </View>
                         <View style={styles.addScreenButtonContainer}>
                             <CustomButton
                                 text="Save"
-                                width='40%'
+                                width='44%'
                                 onPress={this.saveRestaurant}
                             />
                             <CustomButton
                                 text="Cancel"
-                                width='40%'
+                                width='44%'
                                 onPress={() => this.props.navigation.navigate('ListScreen')}
                             />
 
@@ -271,7 +438,7 @@ class ListScreen extends React.Component {
                     </View>
                 </ScrollView>
             )
-        }
+        };
     };
 
     const styles = StyleSheet.create({
