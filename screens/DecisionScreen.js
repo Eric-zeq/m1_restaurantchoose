@@ -164,7 +164,7 @@ class WhosGoingScreen extends React.Component {
                     value={this.state.selected[item.key] || false}
                     onValueChange={()=>this.handlePersonSelect(item.key)}
                     />
-                    <Text style={styles.whosGoingName}>{item.firstName}{item.lastName}({item.relationship})</Text>
+                    <Text style={styles.whosGoingName}>{item.firstName}{item.lastName}({item.Relationship})</Text>
                   </TouchableOpacity>
               );
             }}/>
@@ -493,7 +493,7 @@ class ChoiceScreen extends React.Component {
               return (
                 <View style={styles.choiceScreenListItem}>
                   <Text style={styles.choiceScreenListItemName}>
-                    {item.firstName} {item.lastName}({item.relationship})
+                    {item.firstName} {item.lastName}({item.Relationship})
                   </Text>
                     <Text>Vetoed: {item.vetoed || "no"}</Text>
                 </View>

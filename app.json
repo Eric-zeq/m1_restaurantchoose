@@ -17,12 +17,18 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/its-decision-time.android.png",
+        "foregroundImage": "./assets/splash.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.ericzq.RestaurantChooser"
     },
     "web": {
       "favicon": "./assets/its-decision-time.android.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "6c8af43b-ead3-42d6-b058-3afc17f93f57"
+      }
     }
   }
 }
